@@ -1,13 +1,933 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <title>Pencari ATM - Menteng, Jakarta</title>
+    <!-- Mapbox GL JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* --- Styling Dasar --- */
+      :root {
+        --primary-color: #007bff;
+        --primary-hover-color: #0056b3;
+        --error-color: #dc3545;
+        --success-color: #28a745;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Inter", sans-serif;
+        background-color: #f0f2f5;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* --- Sidebar --- */
+      #sidebar {
+        width: 340px;
+        background: #fff;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        z-index: 2;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .sidebar-header {
+        padding: 20px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .sidebar-header h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        color: #111;
+        font-weight: 700;
+      }
+
+      .sidebar-header p {
+        margin: 5px 0 0;
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      #listings {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        overflow-y: auto;
+        flex-grow: 1;
+      }
+
+      .item {
+        padding: 20px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+      .item:hover {
+        background-color: #f0f2f5;
+      }
+      .item.active {
+        background-color: #e0e8f0;
+      }
+      .item h3 {
+        margin: 0 0 5px 0;
+        font-size: 1.1rem;
+        color: #005a9c;
+      }
+      .item p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #555;
+      }
+      .item .error-message {
+        color: #d8000c;
+        background-color: #ffd2d2;
+        padding: 10px;
+        border-radius: 6px;
+        text-align: center;
+        cursor: default;
+      }
+
+      /* --- Profile Section --- */
+      #profile-section {
+        padding: 20px;
+        border-top: 1px solid #eee;
+        background-color: #f8f9fa;
+      }
+      #profile-section h4 {
+        margin: 0 0 10px;
+      }
+      #profile-section p {
+        margin: 4px 0;
+        font-size: 0.9rem;
+        color: #333;
+      }
+      #profile-section p strong {
+        font-weight: 500;
+      }
+      #logout-btn {
+        width: 100%;
+        padding: 10px;
+        margin-top: 15px;
+        background-color: var(--error-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+      #logout-btn:hover {
+        background-color: #c82333;
+      }
+
+      /* --- Peta --- */
+      #map {
+        flex-grow: 1;
+        height: 100vh;
+      }
+
+      /* --- Styling Popup --- */
+      .mapboxgl-popup-content {
+        padding: 0;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        max-width: 320px;
+        font-family: "Inter", sans-serif;
+      }
+      .mapboxgl-popup-close-button {
+        font-size: 1.5rem;
+        padding: 5px;
+        color: #888;
+      }
+      .popup-container {
+        padding: 20px;
+        text-align: left;
+      }
+      .popup-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #333;
+        margin: 0 0 12px 0;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 8px;
+      }
+      .popup-image {
+        width: 100%;
+        height: 150px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        object-fit: cover;
+        background-color: #f0f0f0;
+        cursor: pointer;
+        border: 1px solid #eee;
+      }
+      .popup-info {
+        font-size: 0.95rem;
+        color: #555;
+        margin: 6px 0;
+      }
+      .popup-info strong {
+        color: #000;
+        font-weight: 500;
+      }
+      .popup-actions {
+        margin-top: 15px;
+      }
+      .comments-button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        width: 100%;
+        text-align: center;
+        transition: background-color 0.2s;
+      }
+      .comments-button:hover {
+        background-color: var(--primary-hover-color);
+      }
+
+      /* --- Styling Modal --- */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 10;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+      }
+      .modal-content {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+      .modal-close-button {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 2rem;
+        color: #888;
+        cursor: pointer;
+        line-height: 1;
+      }
+
+      /* Lightbox */
+      .lightbox-content {
+        padding: 0;
+        background: transparent;
+        width: auto;
+        max-width: 90vw;
+        max-height: 90vh;
+      }
+      .lightbox-content img {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 8px;
+      }
+      .lightbox-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+        padding: 10px 15px;
+        border-radius: 50%;
+        user-select: none;
+        transition: background-color 0.2s;
+      }
+      .lightbox-nav:hover {
+        background: rgba(0, 0, 0, 0.8);
+      }
+      .lightbox-nav.prev {
+        left: 15px;
+      }
+      .lightbox-nav.next {
+        right: 15px;
+      }
+
+      /* Modal Komentar */
+      #comments-modal h2 {
+        margin-top: 0;
+      }
+      .comment-item {
+        border-bottom: 1px solid #eee;
+        padding: 15px 0;
+      }
+      .comment-item:last-child {
+        border-bottom: none;
+      }
+      .comment-author {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .comment-date {
+        font-size: 0.8rem;
+        color: #999;
+        margin-left: 8px;
+      }
+      .comment-text {
+        margin-top: 5px;
+      }
+      #comment-form {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+      }
+      #comment-form textarea {
+        width: 100%;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-family: "Inter", sans-serif;
+        min-height: 80px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+      }
+      #comment-form button {
+        width: 100%;
+        padding: 12px;
+        background-color: var(--success-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      #comment-form button:hover {
+        background-color: #218838;
+      }
+      #comment-form button:disabled {
+        background-color: #aaa;
+        cursor: not-allowed;
+      }
+
+      /* Modal Auth */
+      #auth-modal .form-container {
+        display: flex;
+        flex-direction: column;
+      }
+      #auth-modal .input-group {
+        margin-bottom: 15px;
+      }
+      #auth-modal label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+      #auth-modal input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box;
+      }
+      #auth-modal .auth-tabs {
+        display: flex;
+        border-bottom: 1px solid #ccc;
+        margin-bottom: 20px;
+      }
+      #auth-modal .tab-button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 500;
+        color: #888;
+        border-bottom: 3px solid transparent;
+      }
+      #auth-modal .tab-button.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+      }
+      #auth-modal .auth-button {
+        width: 100%;
+        padding: 12px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      #auth-modal .auth-button:hover {
+        background-color: var(--primary-hover-color);
+      }
+      .auth-error {
+        color: var(--error-color);
+        margin-top: -10px;
+        margin-bottom: 15px;
+        font-size: 0.9rem;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div>
+        <div class="sidebar-header">
+          <h1>Pencari ATM</h1>
+          <p>Menteng, Jakarta Pusat</p>
+        </div>
+        <ul id="listings"></ul>
+      </div>
+      <div id="profile-section" style="display: none">
+        <button id="logout-btn">Logout</button>
+      </div>
+    </div>
+
+    <!-- Peta -->
+    <div id="map"></div>
+
+    <!-- Modal Lightbox -->
+    <div id="lightbox-modal" class="modal-overlay" onclick="closeLightbox()">
+      <div
+        id="lightbox-content"
+        class="lightbox-content"
+        onclick="event.stopPropagation()"
+      >
+        <span class="modal-close-button" onclick="closeLightbox()"
+          >&times;</span
+        >
+        <button class="lightbox-nav prev" onclick="changeImage(-1)">
+          &#10094;
+        </button>
+        <img id="lightbox-image" src="" alt="Gambar ATM yang diperbesar" />
+        <button class="lightbox-nav next" onclick="changeImage(1)">
+          &#10095;
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Komentar -->
+    <div
+      id="comments-modal"
+      class="modal-overlay"
+      onclick="closeCommentsModal()"
+    >
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="modal-close-button" onclick="closeCommentsModal()"
+          >&times;</span
+        >
+        <h2 id="comments-title">Komentar</h2>
+        <div id="comments-list"></div>
+        <form id="comment-form">
+          <h4>Tambahkan Komentar Anda</h4>
+          <textarea
+            id="comment-text"
+            placeholder="Tulis komentar di sini..."
+            required
+          ></textarea>
+          <button type="submit">Kirim Komentar</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Autentikasi -->
+    <div id="auth-modal" class="modal-overlay" onclick="closeAuthModal()">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="modal-close-button" onclick="closeAuthModal()"
+          >&times;</span
+        >
+        <div class="auth-tabs">
+          <button
+            id="login-tab-btn"
+            class="tab-button active"
+            onclick="switchAuthTab('login')"
+          >
+            Login
+          </button>
+          <button
+            id="register-tab-btn"
+            class="tab-button"
+            onclick="switchAuthTab('register')"
+          >
+            Register
+          </button>
+        </div>
+
+        <!-- Form Login -->
+        <form id="login-form" class="form-container">
+          <h2>Login ke Akun Anda</h2>
+          <div id="login-error" class="auth-error" style="display: none"></div>
+          <div class="input-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" required />
+          </div>
+          <div class="input-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" required />
+          </div>
+          <button type="submit" class="auth-button">Login</button>
+        </form>
+
+        <!-- Form Register -->
+        <form id="register-form" class="form-container" style="display: none">
+          <h2>Buat Akun Baru</h2>
+          <div
+            id="register-error"
+            class="auth-error"
+            style="display: none"
+          ></div>
+          <div class="input-group">
+            <label for="register-name">Nama</label>
+            <input type="text" id="register-name" required />
+          </div>
+          <div class="input-group">
+            <label for="register-email">Email</label>
+            <input type="email" id="register-email" required />
+          </div>
+          <div class="input-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" required />
+          </div>
+          <button type="submit" class="auth-button">Register</button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // --- Variabel Global & State ---
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoibGFsdWFobWFkZmF1emkiLCJhIjoiY21jbHUzY3JkMGRjYTJwcHh2OHEycWV1ZiJ9.8mCKCSQEEkGnSl31a4RuEg";
+      let allAtmData = [];
+      let currentUser = null;
+      let authToken = null;
+      let currentCommentingAtmId = null;
+
+      const markers = {};
+      let currentLightboxAtmId = null;
+      let currentImageIndex = 0;
+
+      // --- Inisialisasi Peta ---
+      const map = new mapboxgl.Map({
+        container: "map",
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [106.83, -6.1945],
+        zoom: 14.5,
+      });
+      map.addControl(new mapboxgl.NavigationControl());
+
+      // --- Fungsi-Fungsi Utama ---
+
+      /**
+       * Mengambil data lokasi dari API dan menginisialisasi peta.
+       */
+      async function initializeApp() {
+        const listings = document.getElementById("listings");
+        listings.innerHTML = '<li class="item"><p>Memuat lokasi...</p></li>';
+
+        try {
+          const response = await fetch("http://localhost:3000/map-location");
+          if (!response.ok)
+            throw new Error(`Gagal terhubung! Status: ${response.status}`);
+          const result = await response.json();
+
+          if (result.status === "success" && Array.isArray(result.data)) {
+            allAtmData = result.data;
+            setupLocations(allAtmData);
+          } else {
+            displayError("Terjadi kesalahan saat memuat data.");
+          }
+        } catch (error) {
+          console.error("Gagal mengambil data lokasi:", error);
+          displayError(
+            "Tidak dapat terhubung ke server. Pastikan server lokal Anda berjalan."
+          );
+        }
+      }
+
+      /**
+       * Membangun UI peta (marker, popup, daftar sidebar).
+       */
+      function setupLocations(atmData) {
+        const listings = document.getElementById("listings");
+        listings.innerHTML = "";
+
+        // Hapus marker lama sebelum menambahkan yang baru
+        Object.values(markers).forEach((marker) => marker.remove());
+
+        if (!atmData || atmData.length === 0) {
+          displayError("Tidak ada lokasi yang ditemukan.");
+          return;
+        }
+
+        atmData.forEach((atm) => {
+          const popupContent = `
+            <div class="popup-container">
+                <h3 class="popup-title">${atm.bank} - ${atm.name}</h3>
+                <img src="${
+                  atm.images && atm.images.length > 0
+                    ? atm.images[0]
+                    : "https://placehold.co/800x600/EFEFEF/AAAAAA?text=Tidak+Ada+Gambar"
+                }" 
+                     alt="${atm.name}" class="popup-image" 
+                     onerror="this.onerror=null;this.src='https://placehold.co/800x600/EFEFEF/AAAAAA?text=Gagal+Memuat';"
+                     onclick="openLightbox('${atm.id}', 0)">
+                <p class="popup-info"><strong>Alamat:</strong> ${
+                  atm.address
+                }</p>
+                <p class="popup-info"><strong>Jam:</strong> ${atm.hours}</p>
+                <div class="popup-actions">
+                    <button class="comments-button" onclick="openCommentsModal('${
+                      atm.id
+                    }')">
+                        Lihat komentar (${
+                          atm.comments ? atm.comments.length : 0
+                        })
+                    </button>
+                </div>
+            </div>`;
+          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
+            popupContent
+          );
+          const marker = new mapboxgl.Marker({ color: "#E63946", scale: 0.9 })
+            .setLngLat([atm.lng, atm.lat])
+            .setPopup(popup)
+            .addTo(map);
+          markers[atm.id] = marker;
+
+          const listingItem = document.createElement("li");
+          listingItem.className = "item";
+          listingItem.id = `listing-${atm.id}`;
+          listingItem.innerHTML = `<h3>${atm.bank}</h3><p>${atm.name}</p>`;
+          listings.appendChild(listingItem);
+
+          listingItem.addEventListener("click", () => {
+            map.flyTo({ center: [atm.lng, atm.lat], zoom: 16 });
+            Object.values(markers).forEach((m) => {
+              if (m.getPopup().isOpen()) m.togglePopup();
+            });
+            marker.togglePopup();
+          });
+
+          marker.getPopup().on("open", () => {
+            document
+              .querySelectorAll(".item")
+              .forEach((item) => item.classList.remove("active"));
+            listingItem.classList.add("active");
+          });
+          marker
+            .getPopup()
+            .on("close", () => listingItem.classList.remove("active"));
+        });
+      }
+
+      // --- Fungsi Autentikasi ---
+
+      /**
+       * Memeriksa status login dari localStorage saat aplikasi dimuat.
+       */
+      function checkLoginStatus() {
+        const storedToken = localStorage.getItem("authToken");
+        const storedUser = localStorage.getItem("userData");
+        if (storedToken && storedUser) {
+          authToken = storedToken;
+          currentUser = JSON.parse(storedUser);
+          updateProfileUI();
+        }
+      }
+
+      /**
+       * Menangani proses login.
+       */
+      async function handleLogin(event) {
+        event.preventDefault();
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
+        const errorDiv = document.getElementById("login-error");
+
+        try {
+          const response = await fetch("http://localhost:3000/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || "Login gagal");
+
+          console.log(result, "result");
+
+          authToken = result.data;
+          currentUser = { name: result.data.name, email: result.data.email };
+
+          localStorage.setItem("authToken", authToken);
+          localStorage.setItem("userData", JSON.stringify(currentUser));
+
+          updateProfileUI();
+          closeAuthModal();
+        } catch (error) {
+          errorDiv.textContent = error.message;
+          errorDiv.style.display = "block";
+        }
+      }
+
+      /**
+       * Menangani proses registrasi.
+       */
+      async function handleRegister(event) {
+        event.preventDefault();
+        const name = document.getElementById("register-name").value;
+        const email = document.getElementById("register-email").value;
+        const password = document.getElementById("register-password").value;
+        const errorDiv = document.getElementById("register-error");
+
+        try {
+          const response = await fetch("http://localhost:3000/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, password }),
+          });
+          const result = await response.json();
+          if (!response.ok)
+            throw new Error(result.message || "Registrasi gagal");
+
+          // Setelah berhasil register, arahkan ke tab login
+          switchAuthTab("login");
+          document.getElementById("login-email").value = email;
+          document.getElementById("login-error").textContent =
+            "Registrasi berhasil! Silakan login.";
+          document.getElementById("login-error").style.display = "block";
+          document.getElementById("login-error").style.color =
+            "var(--success-color)";
+        } catch (error) {
+          errorDiv.textContent = error.message;
+          errorDiv.style.display = "block";
+        }
+      }
+
+      /**
+       * Menangani proses logout.
+       */
+      function handleLogout() {
+        authToken = null;
+        currentUser = null;
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("userData");
+        updateProfileUI();
+      }
+
+      /**
+       * Memperbarui UI profil di sidebar.
+       */
+      function updateProfileUI() {
+        const profileSection = document.getElementById("profile-section");
+        if (currentUser) {
+          profileSection.style.display = "block";
+        } else {
+          profileSection.style.display = "none";
+        }
+      }
+
+      // --- Fungsi Komentar ---
+
+      /**
+       * Menangani pengiriman form komentar.
+       */
+      async function handleCommentSubmit(event) {
+        event.preventDefault();
+        if (!authToken) {
+          closeCommentsModal();
+          openAuthModal();
+          return;
+        }
+
+        const commentText = document.getElementById("comment-text").value;
+        if (!commentText.trim()) return;
+
+        const submitBtn = event.target.querySelector("button");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Mengirim...";
+
+        try {
+          const response = await fetch("http://localhost:3000/comment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({
+              text: commentText,
+              atm_locationId: currentCommentingAtmId,
+            }),
+          });
+
+          const result = await response.json();
+          if (!response.ok)
+            throw new Error(result.message || "Gagal mengirim komentar.");
+
+          // Berhasil, tutup modal dan refresh data peta
+          closeCommentsModal();
+          initializeApp(); // Cara termudah untuk refresh data
+        } catch (error) {
+          console.error("Error posting comment:", error);
+          alert(`Error: ${error.message}`); // Tampilkan error ke user
+          // Jika token tidak valid, logout user
+          if (response.status === 401 || response.status === 403) {
+            handleLogout();
+          }
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Kirim Komentar";
+        }
+      }
+
+      // --- Fungsi Modal & UI Helper ---
+
+      function displayError(message) {
+        document.getElementById(
+          "listings"
+        ).innerHTML = `<li class="item"><p class="error-message">${message}</p></li>`;
+      }
+
+      function openCommentsModal(atmId) {
+        currentCommentingAtmId = atmId;
+        const atm = allAtmData.find((a) => a.id === atmId);
+        if (!atm) return;
+
+        const commentsList = document.getElementById("comments-list");
+        const commentsTitle = document.getElementById("comments-title");
+
+        commentsTitle.textContent = `Komentar untuk ${atm.name}`;
+        commentsList.innerHTML = "";
+
+        if (!atm.comments || atm.comments.length === 0) {
+          commentsList.innerHTML = "<p>Belum ada komentar.</p>";
+        } else {
+          atm.comments.forEach((comment) => {
+            const commentEl = document.createElement("div");
+            commentEl.className = "comment-item";
+            const date = comment.date
+              ? new Date(comment.date).toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })
+              : "";
+            commentEl.innerHTML = `
+                <div class="comment-author">${
+                  comment.author
+                } <span class="comment-date">- ${date}</span></div>
+                <div class="comment-text">${comment.text || ""}</div>`;
+            commentsList.appendChild(commentEl);
+          });
+        }
+        document.getElementById("comments-modal").style.display = "flex";
+      }
+      function closeCommentsModal() {
+        document.getElementById("comments-modal").style.display = "none";
+      }
+
+      function openLightbox(atmId, index) {
+        currentLightboxAtmId = atmId;
+        const atm = allAtmData.find((a) => a.id === atmId);
+        if (!atm || !atm.images || atm.images.length === 0) return;
+        currentImageIndex = index;
+        document.getElementById("lightbox-image").src = atm.images[index];
+        document.getElementById("lightbox-modal").style.display = "flex";
+        updateLightboxNav();
+      }
+      function closeLightbox() {
+        document.getElementById("lightbox-modal").style.display = "none";
+      }
+      function changeImage(direction) {
+        const atm = allAtmData.find((a) => a.id === currentLightboxAtmId);
+        if (!atm) return;
+        currentImageIndex =
+          (currentImageIndex + direction + atm.images.length) %
+          atm.images.length;
+        document.getElementById("lightbox-image").src =
+          atm.images[currentImageIndex];
+      }
+      function updateLightboxNav() {
+        const atm = allAtmData.find((a) => a.id === currentLightboxAtmId);
+        const navButtons = document.querySelectorAll(".lightbox-nav");
+        if (atm && atm.images && atm.images.length > 1) {
+          navButtons.forEach((btn) => (btn.style.display = "block"));
+        } else {
+          navButtons.forEach((btn) => (btn.style.display = "none"));
+        }
+      }
+
+      function openAuthModal() {
+        document.getElementById("auth-modal").style.display = "flex";
+      }
+      function closeAuthModal() {
+        document.getElementById("auth-modal").style.display = "none";
+      }
+      function switchAuthTab(tabName) {
+        document.getElementById("login-form").style.display =
+          tabName === "login" ? "block" : "none";
+        document.getElementById("register-form").style.display =
+          tabName === "register" ? "block" : "none";
+        document
+          .getElementById("login-tab-btn")
+          .classList.toggle("active", tabName === "login");
+        document
+          .getElementById("register-tab-btn")
+          .classList.toggle("active", tabName === "register");
+        document.getElementById("login-error").style.display = "none";
+        document.getElementById("register-error").style.display = "none";
+      }
+
+      // --- Event Listeners ---
+      document.addEventListener("DOMContentLoaded", () => {
+        checkLoginStatus();
+        map.on("load", initializeApp);
+
+        // Auth listeners
+        document
+          .getElementById("login-form")
+          .addEventListener("submit", handleLogin);
+        document
+          .getElementById("register-form")
+          .addEventListener("submit", handleRegister);
+        document
+          .getElementById("logout-btn")
+          .addEventListener("click", handleLogout);
+
+        // Comment listener
+        document
+          .getElementById("comment-form")
+          .addEventListener("submit", handleCommentSubmit);
+      });
+    </script>
   </body>
 </html>
